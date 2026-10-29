@@ -1,0 +1,1 @@
+{"complexity":"LARGE","risk":"MEDIUM","confidence":"MEDIUM","reasons":["introduces a persistence abstraction used by several modules","new architectural decision"],"affected_modules":["src/store.js","src/cart.js","src/orders.js"],"unresolved_questions":["which backends are required first"],"recommended_workflow":"LARGE"}

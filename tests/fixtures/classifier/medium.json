@@ -1,0 +1,1 @@
+{"complexity":"MEDIUM","risk":"LOW","confidence":"HIGH","reasons":["new feature in one module","follows existing patterns","needs a short plan and new tests"],"affected_modules":["src/orders.js","test/orders.test.js"],"unresolved_questions":["CSV delimiter and header order"],"recommended_workflow":"MEDIUM"}
