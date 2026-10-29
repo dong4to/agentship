@@ -20,6 +20,60 @@ Estado: **v0.1 (Hito 2)**. Sin Codex, sin gates persistentes y sin creación de 
 - Node.js ≥ 22.18 en el `PATH` (ejecuta TypeScript sin paso de build)
 - Para MEDIUM y LARGE: [GSD Core](https://github.com/open-gsd/gsd-core) instalado **y** el proyecto inicializado con GSD (`.planning/ROADMAP.md`, que crean `/gsd-onboard` o `/gsd-new-project`). Probado con GSD Core 1.19.0.
 
+## Instalación asistida por un agente
+
+Copia este prompt en una sesión de Claude Code abierta en **cualquier carpeta que no sea la de AgentShip**. El agente comprobará los requisitos, instalará el plugin y lo verificará. Antes de cualquier cambio global te pedirá permiso.
+
+```text
+Instala y configura el plugin de Claude Code "AgentShip" (repo: https://github.com/dong4to/agentship).
+Sigue estos pasos en orden y no avances si uno falla:
+
+1. Requisitos. Comprueba y muéstrame las versiones de:
+   - `claude --version` (necesito >= 2.1.292)
+   - `node --version` (necesito >= 22.18)
+   - `git --version`
+   - `gh auth status`, porque el repo es privado
+   Si algo falta o es más antiguo, detente y dime cómo actualizarlo. No lo instales por tu cuenta.
+
+2. Modo de carga. Pregúntame cuál prefiero:
+   a) Solo por sesión (sin cambios globales): clonar en una carpeta de herramientas, por ejemplo
+      `~/tools/agentship`, y arrancar Claude Code con `claude --plugin-dir <ruta>`.
+   b) En todas las sesiones, CLI y app de escritorio: clonar directamente en `~/.claude/skills/agentship`.
+      Claude Code carga como plugin cualquier carpeta de `~/.claude/skills/` que tenga
+      `.claude-plugin/plugin.json`; aparece como `agentship@skills-dir`.
+      Esto modifica mi configuración de usuario, así que confirma conmigo antes de hacerlo.
+   No clones AgentShip dentro de un proyecto donde vaya a usarlo: Claude Code protege contra
+   escritura los archivos que están bajo la raíz de un plugin.
+
+3. Clona con `gh repo clone dong4to/agentship <ruta-elegida>`. Si la ruta ya existe, no la
+   sobrescribas: dime qué hay y pregúntame.
+
+4. Valida con `claude plugin validate <ruta-elegida>`. Debe terminar en "Validation passed".
+   No hace falta `npm install`, porque AgentShip no tiene dependencias en runtime.
+
+5. Verifica que carga:
+   - Opción a: `claude --plugin-dir <ruta-elegida> plugin list`
+   - Opción b: `claude plugin list`
+   Debe aparecer "agentship" con estado loaded.
+   Después ejecuta `node <ruta-elegida>/src/cli.ts detect --project <mi-proyecto>` y muéstrame el JSON.
+
+6. GSD Core (opcional; solo hace falta para las rutas MEDIUM y LARGE). Según el paso 5, dime si
+   GSD está instalado y si el proyecto tiene `.planning/ROADMAP.md`. Si falta, explícame las opciones
+   y espera a que yo decida:
+   - Instalarlo: `npx @opengsd/gsd-core@latest --claude --local` (solo en ese proyecto) o `--global`.
+     Ambos descargan y ejecutan un paquete de npm.
+   - Inicializar el proyecto con `/gsd-onboard`. Lo ejecuto yo en una sesión nueva.
+   - No instalarlo. AgentShip funcionará en SMALL, y MEDIUM/LARGE se detendrán con un aviso.
+
+7. Reporta qué instalaste y dónde, qué quedó pendiente, y cómo empezar:
+   `/agentship:dev <tarea>`. Si elegí la opción b y la sesión ya estaba abierta, recuerda `/reload-plugins`.
+
+Reglas:
+- No modifiques mis CLAUDE.md, mis `settings.json` ni el `.claude/` de mis proyectos.
+- No hagas push ni crees repos.
+- No uses permisos amplios (`bypassPermissions`).
+```
+
 ## Uso
 
 Para cargar el plugin en una sesión, sin instalarlo:
