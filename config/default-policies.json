@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "risk_floor": {
+    "LOW": "SMALL",
+    "MEDIUM": "SMALL",
+    "HIGH": "LARGE"
+  },
+  "high_risk_confirmed_downgrade_floor": "MEDIUM",
+  "low_confidence": {
+    "first_pass": "discovery",
+    "after_discovery": "clarify"
+  }
+}

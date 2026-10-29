@@ -1,0 +1,5 @@
+Here is my assessment:
+
+```json
+{"complexity":"MEDIUM","risk":"LOW","confidence":"HIGH","reasons":["module-level feature"],"affected_modules":["src/orders.js"],"unresolved_questions":[],"recommended_workflow":"MEDIUM"}
+```

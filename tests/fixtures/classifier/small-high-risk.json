@@ -1,0 +1,1 @@
+{"complexity":"SMALL","risk":"HIGH","confidence":"HIGH","reasons":["one-line change","changes authorization: who counts as admin"],"affected_modules":["src/auth.js"],"unresolved_questions":[],"recommended_workflow":"SMALL"}

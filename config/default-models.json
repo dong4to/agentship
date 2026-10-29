@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "_note": "Initial hypotheses, not benchmark results (plan section 6.1). Aliases only; no pinned model IDs.",
+  "roles": {
+    "classifier": { "runtime": "claude", "model": "sonnet", "effort": "low" },
+    "discovery": { "runtime": "claude", "model": "sonnet", "effort": "low" },
+    "requirements": { "runtime": "claude", "model": "sonnet", "effort": "medium" },
+    "architect": { "runtime": "claude", "model": "opus", "effort": "high" },
+    "planner": { "runtime": "claude", "model": "opus", "effort": "high" },
+    "implementer": { "runtime": "claude", "model": "sonnet", "effort": "medium" },
+    "test_triage": { "runtime": "claude", "model": "sonnet", "effort": "low" },
+    "internal_reviewer": { "runtime": "claude", "model": "sonnet", "effort": "high" }
+  },
+  "gsd": {
+    "_note": "Suggested translation to GSD .planning/config.json keys (docs/CONFIGURATION.md, v1.19.0). AgentShip prints it; it never writes the user's config.",
+    "model_profile": "balanced",
+    "models": {
+      "planning": "opus",
+      "discuss": "sonnet",
+      "research": "sonnet",
+      "execution": "sonnet",
+      "verification": "sonnet",
+      "completion": "sonnet"
+    }
+  }
+}
