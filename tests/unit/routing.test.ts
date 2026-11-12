@@ -48,8 +48,10 @@ test('SMALL low-risk stays SMALL', () => {
   assert.deepEqual([d.action, d.route], ['proceed', 'SMALL']);
 });
 
-test('MEDIUM routes to MEDIUM', () => {
-  assert.equal(decide(load('medium.json')).route, 'MEDIUM');
+test('MEDIUM routes to MEDIUM (via proposals)', () => {
+  const d = decide(load('medium.json'));
+  assert.deepEqual([d.action, d.route], ['propose', 'MEDIUM']);
+  assert.equal(decide(load('medium.json'), { proposals: 'off' }).action, 'proceed');
 });
 
 test('LARGE routes to LARGE', () => {
@@ -57,7 +59,7 @@ test('LARGE routes to LARGE', () => {
 });
 
 test('SMALL effort but HIGH risk routes to LARGE', () => {
-  const d = decide(load('small-high-risk.json'));
+  const d = decide(load('small-high-risk.json'), { proposals: 'off' });
   assert.deepEqual([d.action, d.route, d.risk], ['proceed', 'LARGE', 'HIGH']);
 });
 
@@ -103,7 +105,7 @@ test('downgrading a HIGH-risk task needs confirmation', () => {
 test('confirmed HIGH-risk downgrade applies, but never to SMALL', () => {
   const c = load('small-high-risk.json');
   assert.equal(decide(c, { route: 'MEDIUM', confirmDowngrade: true }).route, 'MEDIUM');
-  const d = decide(c, { route: 'SMALL', confirmDowngrade: true });
+  const d = decide(c, { route: 'SMALL', confirmDowngrade: true, proposals: 'off' });
   assert.deepEqual([d.action, d.route], ['proceed', 'MEDIUM']);
 });
 
@@ -112,7 +114,9 @@ test('HIGH risk never produces SMALL under any override combination', () => {
   for (const route of [undefined, 'SMALL', 'MEDIUM', 'LARGE'] as const) {
     for (const confirmDowngrade of [false, true]) {
       for (const afterDiscovery of [false, true]) {
-        assert.notEqual(decide(c, { route, confirmDowngrade, afterDiscovery }).route, 'SMALL');
+        for (const proposals of [undefined, 'force', 'off'] as const) {
+          assert.notEqual(decide(c, { route, confirmDowngrade, afterDiscovery, proposals }).route, 'SMALL');
+        }
       }
     }
   }
@@ -132,4 +136,56 @@ test('bad flags and empty tasks are errors, not silent defaults', () => {
   assert.match(parseRequest('--risk low fix it').errors.join(), /only accepts "high"/);
   assert.match(parseRequest('--fast fix it').errors.join(), /unknown flag/);
   assert.match(parseRequest('--route large').errors.join(), /task description is empty/);
+  assert.match(parseRequest('--proposals --no-proposals fix it').errors.join(), /mutually exclusive/);
+});
+
+test('resume flags: valid id + proposal, and their misuse', () => {
+  const ok = parseRequest('--resume 2026-11-12T10-00-00-000Z --proposal 2');
+  assert.deepEqual([ok.errors, ok.resume], [[], { runId: '2026-11-12T10-00-00-000Z', proposal: 2 }]);
+  assert.match(parseRequest('--resume ../../etc --proposal 1').errors.join(), /--resume expects a run id/);
+  assert.match(parseRequest('--proposal 2 fix it').errors.join(), /only works together with --resume/);
+  assert.match(parseRequest('--resume 2026-11-12T10-00-00-000Z --proposal 4').errors.join(), /expects 1, 2 or 3/);
+  assert.match(parseRequest('--resume 2026-11-12T10-00-00-000Z').errors.join(), /needs --proposal/);
+  assert.match(parseRequest('--resume 2026-11-12T10-00-00-000Z --proposal 1 more text').errors.join(), /takes no task text/);
+});
+
+// --- classification extensions (H2.7 / H2.9)
+
+test('domains and multiple_approaches are optional, validated, and normalized', () => {
+  const base = JSON.parse(fixture('small.json'));
+  const c = load('small.json');
+  assert.deepEqual([c.domains, c.multiple_approaches], [[], false]);
+  const p = parseClassification(JSON.stringify({ ...base, domains: ['Accounting'], multiple_approaches: true }));
+  assert.ok(p.ok);
+  assert.deepEqual([p.value.domains, p.value.multiple_approaches], [['accounting'], true]);
+  assert.equal(parseClassification(JSON.stringify({ ...base, domains: 'accounting' })).ok, false);
+  assert.equal(parseClassification(JSON.stringify({ ...base, multiple_approaches: 'yes' })).ok, false);
+});
+
+// --- proposals triggers (H2.7)
+
+test('proposals: clear SMALL proceeds; multiple approaches, MEDIUM confidence or --proposals propose', () => {
+  const c = load('small.json');
+  assert.equal(decide(c).action, 'proceed');
+  assert.equal(decide({ ...c, multiple_approaches: true }).action, 'propose');
+  assert.equal(decide({ ...c, confidence: 'MEDIUM' }).action, 'propose');
+  assert.equal(decide(c, { proposals: 'force' }).action, 'propose');
+  assert.equal(decide({ ...c, multiple_approaches: true }, { proposals: 'off' }).action, 'proceed');
+  assert.equal(decide(load('large.json'), { fromProposal: true }).action, 'proceed');
+});
+
+test('proposals never bypass confirmation or low-confidence handling', () => {
+  assert.equal(decide(load('small-high-risk.json'), { route: 'MEDIUM', proposals: 'force' }).action, 'confirm_downgrade');
+  assert.equal(decide(load('low-confidence.json'), { proposals: 'force' }).action, 'discovery');
+});
+
+// --- domain risk floors (H2.9)
+
+test('domains raise risk to their minimum, never lower it', () => {
+  const c = load('small.json');
+  const pay = decide({ ...c, domains: ['payments'] }, { proposals: 'off' });
+  assert.deepEqual([pay.risk, pay.route], ['HIGH', 'LARGE']);
+  assert.equal(decide({ ...c, domains: ['accounting'] }, { proposals: 'off' }).risk, 'MEDIUM');
+  assert.equal(decide({ ...load('small-high-risk.json'), domains: ['accounting'] }).risk, 'HIGH');
+  assert.equal(decide({ ...c, domains: ['cooking'] }).risk, 'LOW');
 });

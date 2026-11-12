@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "risk_floor": {
     "LOW": "SMALL",
     "MEDIUM": "SMALL",
@@ -9,5 +9,21 @@
   "low_confidence": {
     "first_pass": "discovery",
     "after_discovery": "clarify"
+  },
+  "domain_min_risk": {
+    "security": "HIGH",
+    "auth": "HIGH",
+    "payments": "HIGH",
+    "compliance": "HIGH",
+    "accounting": "MEDIUM",
+    "data-migrations": "MEDIUM",
+    "infrastructure": "MEDIUM"
+  },
+  "proposals": {
+    "_note": "Proposals run when any trigger matches, unless --no-proposals. --proposals forces them.",
+    "max": 3,
+    "trigger_min_route": "MEDIUM",
+    "trigger_confidence_below": "HIGH",
+    "trigger_on_multiple_approaches": true
   }
 }

@@ -15,6 +15,9 @@ export interface Classification {
   affected_modules: string[];
   unresolved_questions: string[];
   recommended_workflow: Level;
+  // Optional (added in H2.7/H2.9); default to [] / false when the classifier omits them.
+  domains: string[];
+  multiple_approaches: boolean;
 }
 
 export type Parsed =
@@ -61,10 +64,19 @@ export function validateClassification(raw: unknown): Parsed {
   strings('reasons');
   strings('affected_modules');
   strings('unresolved_questions');
+  if (o.domains !== undefined) strings('domains');
+  if (o.multiple_approaches !== undefined && typeof o.multiple_approaches !== 'boolean') {
+    errors.push('multiple_approaches must be a boolean');
+  }
   if (errors.length === 0 && (o.reasons as string[]).length === 0) {
     errors.push('reasons must not be empty');
   }
 
   if (errors.length) return { ok: false, errors };
-  return { ok: true, value: o as unknown as Classification };
+  const value = {
+    ...(o as unknown as Classification),
+    domains: ((o.domains as string[] | undefined) ?? []).map((d) => d.toLowerCase()),
+    multiple_approaches: (o.multiple_approaches as boolean | undefined) ?? false,
+  };
+  return { ok: true, value };
 }

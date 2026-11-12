@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "_note": "Domain packs: which specialist agents to look for per phase (exact agent names, '*' wildcard allowed), and the checklist AgentShip injects into planning and review whether or not a specialist is installed. Agent names match the VoltAgent collection (github.com/VoltAgent/awesome-claude-code-subagents) and any agent with the same name in the project, user or another plugin. Minimum risk per domain lives in default-policies.json.",
+  "max_specialists_per_phase": 2,
+  "domains": {
+    "security": {
+      "description": "Vulnerabilities, secrets, input handling, hardening",
+      "agents": {
+        "research": ["security-engineer", "security-auditor"],
+        "review": ["security-auditor", "penetration-tester", "security-engineer"]
+      },
+      "checklist": [
+        "Untrusted input is validated and encoded at every boundary",
+        "No secrets in code, logs or error messages",
+        "Least privilege for new permissions, tokens and service accounts",
+        "Dependencies added are pinned and come from trusted sources"
+      ]
+    },
+    "auth": {
+      "description": "Authentication, authorization, sessions, roles, permissions",
+      "agents": {
+        "research": ["auth-integration-engineer", "security-engineer"],
+        "review": ["security-auditor", "auth-integration-engineer"]
+      },
+      "checklist": [
+        "Every new path checks authorization on the server side",
+        "Role and permission changes cannot escalate privileges",
+        "Session and token lifetimes, revocation and rotation are handled",
+        "Tests cover the denied cases, not only the allowed ones"
+      ]
+    },
+    "payments": {
+      "description": "Payment providers, money movement, refunds, payouts",
+      "agents": {
+        "research": ["payment-integration", "fintech-engineer"],
+        "review": ["fintech-engineer", "payment-integration"]
+      },
+      "checklist": [
+        "Amounts use integer minor units or decimals, never floats",
+        "Operations are idempotent (idempotency keys, retries do not double charge)",
+        "Webhook signatures are verified and replays rejected",
+        "Every state change on money is auditable and reversible by a compensating entry"
+      ]
+    },
+    "accounting": {
+      "description": "Ledgers, journal entries, invoicing, taxes, financial reports",
+      "agents": {
+        "research": ["accountant", "*accounting*", "fintech-engineer", "business-analyst"],
+        "review": ["fintech-engineer", "*accounting*", "risk-manager"]
+      },
+      "checklist": [
+        "Double entry: every journal entry balances (debits = credits)",
+        "Amounts and currency: decimal arithmetic, explicit rounding rule, currency stored with the amount",
+        "Posted entries are immutable; corrections are reversing entries",
+        "Closed periods cannot be modified",
+        "Tax rules and rates are data, with effective dates",
+        "Reports reconcile with the ledger totals"
+      ]
+    },
+    "compliance": {
+      "description": "Personal data, GDPR/CCPA, HIPAA, audit requirements",
+      "agents": {
+        "research": ["compliance-auditor", "gdpr-ccpa-compliance", "hipaa-compliance"],
+        "review": ["compliance-auditor", "gdpr-ccpa-compliance", "hipaa-compliance"]
+      },
+      "checklist": [
+        "Personal data collected is the minimum needed and has a retention rule",
+        "Personal data is not logged or sent to third parties without a basis",
+        "Access to sensitive records is audited"
+      ]
+    },
+    "data-migrations": {
+      "description": "Schema changes, data backfills, database migrations",
+      "agents": {
+        "research": ["database-administrator", "postgres-pro", "sql-pro"],
+        "review": ["database-administrator", "database-optimizer"]
+      },
+      "checklist": [
+        "Migration is reversible or has a tested rollback / backup",
+        "Backfills run in batches and are idempotent",
+        "Old and new code can run against the schema during deploy",
+        "Locks and long-running statements on large tables are avoided"
+      ]
+    },
+    "infrastructure": {
+      "description": "CI/CD, cloud resources, containers, deploy configuration",
+      "agents": {
+        "research": ["devops-engineer", "cloud-architect", "terraform-engineer"],
+        "review": ["sre-engineer", "devops-engineer"]
+      },
+      "checklist": [
+        "Changes are declared as code and reviewed, not applied by hand",
+        "Rollback path exists and is documented",
+        "No production credentials or endpoints in the change"
+      ]
+    }
+  }
+}

@@ -28,7 +28,7 @@ for name in "${!tasks[@]}"; do
     rm -rf "$clone" && git clone -q "$fixture" "$clone" && cd "$clone" || exit 1
     git remote remove origin
     start=$(date +%s)
-    timeout 2700 claude -p "/agentship:dev ${tasks[$name]}" \
+    timeout 2700 claude -p "/agentship:dev --no-proposals ${tasks[$name]}" \
       --plugin-dir "$root" --setting-sources project,local --no-session-persistence \
       --permission-mode acceptEdits --allowedTools "${allowed[@]}" \
       --disallowedTools "Bash(git push*)" "Bash(gh *)" "Bash(npx *)" \

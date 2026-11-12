@@ -1,10 +1,10 @@
 {
   "name": "agentship",
-  "version": "0.1.0",
-  "description": "Classifies a dev task by complexity and risk, then routes it to the right workflow: Claude direct (SMALL), GSD Quick (MEDIUM) or GSD Full (LARGE / HIGH-RISK).",
+  "version": "0.2.0",
+  "description": "Classifies a dev task by complexity, risk and domain, offers up to 3 approaches, then runs the right workflow (SMALL / MEDIUM / LARGE) with domain specialist agents, tests, review and human gates.",
   "author": {
     "name": "Luis Felipe Poma"
   },
   "repository": "https://github.com/dong4to/agentship",
-  "keywords": ["workflow", "routing", "classification", "gsd", "orchestration"]
+  "keywords": ["workflow", "routing", "classification", "proposals", "subagents", "orchestration"]
 }

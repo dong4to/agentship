@@ -1,0 +1,39 @@
+{
+  "goal": "Add order status",
+  "acceptance_criteria": [
+    "cancelled orders cannot be paid"
+  ],
+  "decisions": [
+    "status enum in orders.js"
+  ],
+  "risks": [],
+  "waves": [
+    {
+      "id": 1,
+      "title": "status model",
+      "tasks": [
+        "add status"
+      ],
+      "files": [
+        "src/orders.js"
+      ],
+      "depends_on": [],
+      "verify": "npm test"
+    },
+    {
+      "id": 2,
+      "title": "cancel + list",
+      "tasks": [
+        "cancelOrder"
+      ],
+      "files": [
+        "src/orders.js",
+        "test/orders.test.js"
+      ],
+      "depends_on": [
+        1
+      ],
+      "verify": "npm test"
+    }
+  ]
+}

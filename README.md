@@ -2,23 +2,26 @@
 
 **Get it done. Ship it right.**
 
-AgentShip es un plugin de Claude Code que recibe una tarea de desarrollo (ticket, bug, feature o idea), la clasifica por complejidad y riesgo, y la envía al workflow adecuado:
+AgentShip es un plugin de Claude Code que recibe una tarea de desarrollo (ticket, bug, feature o idea), la clasifica por complejidad, riesgo y dominio, propone hasta 3 enfoques cuando conviene y la envía al workflow adecuado:
 
 | Ruta | Cuándo | Qué ejecuta |
 |---|---|---|
 | **SMALL** | Cambio localizado, requisitos claros, riesgo bajo | Claude directo: implementar → tests → resumen para PR |
-| **MEDIUM** | Feature de un módulo, necesita plan breve | GSD Quick (`/gsd-quick --research --validate`) |
-| **LARGE / HIGH-RISK** | Varios módulos, decisiones nuevas, o cualquier riesgo alto | Ciclo de fases de GSD con **aprobación humana** entre el plan y la ejecución |
+| **MEDIUM** | Feature de un módulo, necesita plan breve | discovery → plan (Opus) → waves (Sonnet) → tests → revisión |
+| **LARGE / HIGH-RISK** | Varios módulos, decisiones nuevas, o cualquier riesgo alto | discovery → requisitos → arquitectura y plan → **aprobación humana** → waves + tests → revisión → UAT |
 
 Un LLM clasifica la tarea; la ruta final la decide **código determinista y testeado** (`src/routing/policy.ts`). El riesgo HIGH siempre termina en LARGE, una clasificación inválida nunca cae en SMALL, y bajar de ruta una tarea HIGH requiere confirmación explícita.
 
-Estado: **v0.1 (Hito 2)**. Sin Codex, sin gates persistentes y sin creación de PR. Ver [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) y el [reporte del Hito 2](docs/milestones/h2-report.md).
+- **Propuestas:** cuando hay más de un camino razonable, el agente ofrece de 1 a 3 enfoques con su alcance, trade-offs y clasificación. Eliges uno y la ruta se calcula sobre él. Elegir un enfoque más acotado reduce el alcance, nunca el riesgo.
+- **Especialistas por dominio:** si la tarea toca contabilidad, pagos, auth, seguridad, etc., AgentShip llama al agente especialista instalado (los tuyos, o colecciones como [VoltAgent](https://github.com/VoltAgent/awesome-claude-code-subagents)) en research y en revisión, con el modelo que corresponde a cada fase, y aplica el checklist del dominio aunque no haya ningún especialista instalado.
+
+Estado: **v0.2 (Hito 2 + H2.7–H2.9)**. Motor de fases propio, sin GSD. Todavía sin Codex, sin gates persistentes y sin creación de PR. Ver [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) y el [reporte del Hito 2](docs/milestones/h2-report.md).
 
 ## Requisitos
 
 - Claude Code ≥ 2.1.292 (se probó con 2.1.312)
 - Node.js ≥ 22.18 en el `PATH` (ejecuta TypeScript sin paso de build)
-- Para MEDIUM y LARGE: [GSD Core](https://github.com/open-gsd/gsd-core) instalado **y** el proyecto inicializado con GSD (`.planning/ROADMAP.md`, que crean `/gsd-onboard` o `/gsd-new-project`). Probado con GSD Core 1.19.0.
+- Opcional: agentes especialistas por dominio (ver [configuración](docs/configuration.md#agregar-especialistas)).
 
 ## Instalación asistida por un agente
 
@@ -55,15 +58,13 @@ Sigue estos pasos en orden y no avances si uno falla:
    - Opción a: `claude --plugin-dir <ruta-elegida> plugin list`
    - Opción b: `claude plugin list`
    Debe aparecer "agentship" con estado loaded.
-   Después ejecuta `node <ruta-elegida>/src/cli.ts detect --project <mi-proyecto>` y muéstrame el JSON.
 
-6. GSD Core (opcional; solo hace falta para las rutas MEDIUM y LARGE). Según el paso 5, dime si
-   GSD está instalado y si el proyecto tiene `.planning/ROADMAP.md`. Si falta, explícame las opciones
-   y espera a que yo decida:
-   - Instalarlo: `npx @opengsd/gsd-core@latest --claude --local` (solo en ese proyecto) o `--global`.
-     Ambos descargan y ejecutan un paquete de npm.
-   - Inicializar el proyecto con `/gsd-onboard`. Lo ejecuto yo en una sesión nueva.
-   - No instalarlo. AgentShip funcionará en SMALL, y MEDIUM/LARGE se detendrán con un aviso.
+6. Especialistas (opcional). Pregúntame si quiero instalar categorías de la colección VoltAgent
+   (https://github.com/VoltAgent/awesome-claude-code-subagents). Recomienda pocas, según mis proyectos:
+   `voltagent-domains` (fintech, pagos, riesgo), `voltagent-qa-sec` (seguridad), `voltagent-data-ai` (datos).
+   Es un cambio global (plugins de usuario): no lo hagas sin mi confirmación explícita.
+   Si acepto: `claude plugin marketplace add VoltAgent/awesome-claude-code-subagents` y
+   `claude plugin install <categoría>`.
 
 7. Reporta qué instalaste y dónde, qué quedó pendiente, y cómo empezar:
    `/agentship:dev <tarea>`. Si elegí la opción b y la sesión ya estaba abierta, recuerda `/reload-plugins`.
@@ -96,8 +97,10 @@ Dentro de esa sesión:
 | `--route small\|medium\|large` | Sube la ruta. Bajarla solo se aplica si el riesgo no es HIGH. |
 | `--risk high` | Marca la tarea como HIGH (fuerza LARGE). El riesgo no se puede bajar. |
 | `--confirm-downgrade` | Confirma bajar de ruta una tarea HIGH. Incluso así, el mínimo es MEDIUM. |
+| `--proposals` / `--no-proposals` | Fuerza o salta la fase de propuestas. |
+| `--resume <run_id> --proposal <n>` | Continúa una ejecución que se detuvo en las propuestas (útil en modo headless). |
 
-Cada ejecución guarda su evidencia en `<proyecto>/.agentship/runs/<id>/`: la petición, la clasificación, la decisión, el log de tests, un resumen apto para PR y el gate. Ese directorio se ignora a sí mismo, así que el `.gitignore` del proyecto no se toca.
+Cada ejecución guarda su evidencia en `<proyecto>/.agentship/runs/<id>/`: la petición, la clasificación, las propuestas y la elegida, los especialistas usados, el plan, los logs de tests, la revisión, el gate y un resumen apto para PR. Ese directorio se ignora a sí mismo, así que el `.gitignore` del proyecto no se toca.
 
 ## Desarrollo
 
@@ -115,7 +118,7 @@ tests/e2e/setup-fixture.sh /tmp/as-e2e/base
 tests/e2e/run-e2e.sh /tmp/as-e2e/base /tmp/as-e2e/out
 ```
 
-`setup-fixture.sh` descarga `@opengsd/gsd-core` de npm y lo instala de forma local en el fixture.
+Las tareas E2E corren con `--no-proposals` para que no se detengan esperando una elección.
 
 ## Documentación
 

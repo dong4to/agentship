@@ -4,11 +4,13 @@
 **Repositorio previsto:** `agentship`  
 **Tagline:** Get it done. Ship it right.  
 **Tipo de producto:** Plugin de orquestación para Claude Code  
-**Estado:** Planificación técnica  
-**Fecha:** 29 de octubre de 2026  
+**Estado:** Hito 2 entregado; revisión H2.7–H2.9 (propuestas, motor nativo, especialistas) implementada  
+**Fecha:** 29 de octubre de 2026 · revisado el 12 de noviembre de 2026  
 **Inicio del desarrollo:** Hito 2
 
 > Estado de ejecución del plan: ver [docs/milestones/h2-report.md](docs/milestones/h2-report.md).
+>
+> **Revisión del 12/11/2026.** GSD Core se retira por completo y lo sustituye un motor de fases nativo. Se agregan la fase de Propuestas y los especialistas por dominio. Los detalles están en §9.4. Las menciones a GSD que quedan en este documento son históricas y ya no aplican.
 
 ---
 
@@ -21,12 +23,12 @@ Tu responsabilidad es implementar la solución de forma incremental, verificable
 ## Reglas de trabajo
 
 1. Lee este documento completo antes de modificar archivos.
-2. Inspecciona las versiones instaladas de Claude Code, Node.js, Git y GSD Core.
+2. Inspecciona las versiones instaladas de Claude Code, Node.js y Git.
 3. Contrasta las APIs, comandos y formatos de configuración con la documentación oficial vigente.
 4. No asumas que los comandos documentados aquí funcionan sin comprobarlos.
 5. Implementa los hitos secuencialmente. No adelantes funcionalidades de hitos posteriores sin necesidad.
 6. Mantén AgentShip desacoplado de las versiones concretas de los modelos.
-7. Prioriza las capacidades nativas de Claude Code y GSD Core antes de desarrollar infraestructura propia.
+7. Prioriza las capacidades nativas de Claude Code (subagentes, skills, plugins) antes de desarrollar infraestructura propia. No se depende de frameworks de workflow externos (ver §9.4).
 8. Utiliza pruebas automatizadas para las reglas deterministas.
 9. No publiques paquetes, crees repositorios remotos, hagas push ni abras PR sin autorización explícita.
 10. Documenta decisiones, limitaciones, pruebas ejecutadas y trabajo pendiente.
@@ -105,7 +107,9 @@ Debe poder inspeccionar y corregir las decisiones de AgentShip.
 | Complexity Classifier | Subagente | Evaluar complejidad, riesgo e incertidumbre |
 | Workflow Router | Lógica de decisión | Seleccionar SMALL, MEDIUM o LARGE |
 | Model Profiles | Configuración | Asociar roles con modelos y niveles de esfuerzo |
-| GSD Core | Framework de workflows | Planificación, ejecución por fases y verificación |
+| Proposer | Subagente | Ofrecer hasta 3 enfoques para la tarea, cada uno clasificado |
+| Motor de fases nativo | Skill + subagentes + validación | Discovery, requisitos, plan, gate, waves, revisión y UAT |
+| Registro de agentes | Lógica de descubrimiento | Encontrar especialistas por dominio y fase (proyecto, usuario, plugins) |
 | Codex Adapter | Integración / herramienta | Solicitar revisiones independientes a Codex CLI |
 | Quality Gates | Scripts + CI | Impedir avanzar cuando no se cumplen condiciones |
 | Run Artifacts | Archivos estructurados | Persistir decisiones, resultados y evidencias |
@@ -129,12 +133,12 @@ Debe poder inspeccionar y corregir las decisiones de AgentShip.
 - Runtime y herramientas de Claude Code.
 - Subagentes nativos.
 - Sistema de skills.
-- GSD Core para workflows complejos.
+- Colecciones de subagentes especialistas instaladas por el usuario (p. ej. VoltAgent), de forma opcional.
 - Git y GitHub.
 - Comandos deterministas de pruebas de cada repositorio.
 - Codex CLI para revisión externa.
 
-No copiar internamente el código de GSD Core ni mantener una versión modificada salvo que exista una justificación técnica documentada.
+No copiar agentes de terceros dentro de AgentShip; se descubren y se usan si están instalados.
 
 ## 3.3 Flujo general
 
@@ -143,10 +147,15 @@ flowchart TD
     A["Ticket / Idea / Bug"] --> B["AgentShip Skill"]
     B --> C["Complexity Classifier"]
     C --> D["Policy Router"]
+    D -->|propose| PP["Propuestas (1–3)<br/>+ especialistas de research"]
+    PP --> SEL["Elección del desarrollador"]
+    SEL --> D2["Policy Router sobre la propuesta"]
+    D2 --> SP
+    D -->|proceed| SP["Especialistas + checklist por dominio"]
 
-    D -->|SMALL| S["Claude Direct Workflow"]
-    D -->|MEDIUM| M["GSD Quick Workflow"]
-    D -->|LARGE / HIGH-RISK| L["GSD Full Workflow"]
+    SP -->|SMALL| S["Claude Direct Workflow"]
+    SP -->|MEDIUM| M["Native Medium Workflow"]
+    SP -->|LARGE / HIGH-RISK| L["Native Large Workflow"]
 
     S --> Q["Quality Gates"]
     M --> Q
@@ -215,7 +224,7 @@ Características:
 - Revisión interna.
 - Codex opcional cuando aparezca riesgo residual.
 
-Preferir GSD Quick si la versión instalada proporciona las capacidades necesarias.
+Se ejecuta con el motor de fases nativo: `agentship:planner` (plan validado con 1 o 2 waves), `agentship:implementer` por wave y `agentship:reviewer` junto con los especialistas de review del dominio.
 
 ## 4.3 LARGE / HIGH-RISK
 
@@ -237,7 +246,7 @@ Características:
 - UAT según los criterios de aceptación.
 - Aprobación humana obligatoria para acciones sensibles.
 
-Preferir GSD Full para la gestión de fases y artefactos.
+Se ejecuta con el motor de fases nativo. Los artefactos (`requirements.md`, `plan.json`, `gate.md`, `review.md`, `uat.md`) viven en `run_dir`.
 
 **Nota:** si Codex no está disponible y la política exige revisión independiente, el flujo debe solicitar una alternativa o aprobación humana explícita. No debe omitir silenciosamente el control.
 
@@ -339,6 +348,9 @@ Utilizar roles y perfiles lógicos.
 | Implementer | Sonnet | Medium |
 | Test Triage | Sonnet | Low / Medium |
 | Internal Reviewer | Sonnet | High |
+| Proposer | Opus | Medium |
+| Domain Research (especialista) | Opus | Medium |
+| Domain Review (especialista) | Sonnet | High |
 | Independent Reviewer | Codex, opcional | High, si el runtime lo admite |
 
 Estas asignaciones son hipótesis iniciales, no resultados de un benchmark.
@@ -354,15 +366,11 @@ Estas asignaciones son hipótesis iniciales, no resultados de un benchmark.
 - Escalar a Opus cuando Sonnet no pueda resolver una decisión compleja con suficiente confianza.
 - Medir antes de optimizar.
 
-## 6.3 GSD Core
+## 6.3 Especialistas externos
 
-Utilizar los mecanismos oficiales de configuración de GSD para sus agentes, incluidos perfiles, overrides y niveles de esfuerzo.
+El modelo lo fija la fase, no el agente: AgentShip delega al especialista con el modelo del rol (`domain_research`, `domain_review`). El effort de un especialista externo es el que declare en su frontmatter.
 
-No inventar claves de `.planning/config.json`.
-
-Comprobar la versión instalada y consultar la documentación correspondiente antes de generar configuraciones.
-
-AgentShip debe conservar sus propias preferencias lógicas y traducirlas a las opciones de GSD cuando corresponda.
+*(Antes: «GSD Core». Se retiró en la revisión del 12/11/2026.)*
 
 ---
 
@@ -388,7 +396,6 @@ agentship/
 │   ├── routing/
 │   ├── policies/
 │   ├── integrations/
-│   │   ├── gsd/
 │   │   └── codex/
 │   ├── gates/
 │   ├── artifacts/
@@ -521,7 +528,7 @@ Reglas mínimas:
 
 El clasificador puede usar un LLM, pero estas reglas deben ejecutarse como código determinista.
 
-### H2.4 — Integración GSD
+### H2.4 — Integración GSD *(reemplazada por H2.8)*
 
 1. Detectar si GSD Core está instalado.
 2. Comprobar su versión.
@@ -576,6 +583,42 @@ Agregar también un caso SMALL en esfuerzo pero HIGH-RISK.
 - No se crean PR ni cambios remotos sin autorización.
 
 **Resultado esperado:** AgentShip v0.1 — clasificación y routing funcionales.
+
+## 9.4 Revisión del Hito 2 (12/11/2026)
+
+### H2.7 — Fase de Propuestas
+
+Después del análisis y antes del routing final, el agente `proposer` ofrece de 1 a 3 enfoques distintos para la tarea. Cada uno trae alcance, trade-offs y su propia clasificación, y uno viene marcado como recomendado.
+
+- Se activa con `--proposals`, o cuando la ruta es ≥ MEDIUM, la confianza es < HIGH o el clasificador indica `multiple_approaches`. `--no-proposals` la salta.
+- El CLI valida las propuestas: entre 1 y 3, ids secuenciales, títulos distintos, exactamente una recomendada y una clasificación válida en cada una.
+- El desarrollador elige y la política determinista vuelve a calcular la ruta sobre esa propuesta. La ruta puede bajar, pero **el riesgo nunca baja del análisis**. Las propuestas no se saltan `confirm_downgrade` ni el manejo de confianza LOW.
+- En modo headless la ejecución se detiene, y se continúa con `--resume <run_id> --proposal <n>`.
+
+### H2.8 — Motor de fases nativo (se retira GSD)
+
+GSD Core se retira por completo por estas razones:
+
+- exige `.planning/ROADMAP.md` incluso para MEDIUM;
+- su namespace cambia según cómo se instaló;
+- impone commits y estado propios;
+- impide controlar el modelo de cada fase.
+
+Sus fases pasan a ser subagentes de AgentShip (`planner`, `implementer`, `reviewer`) orquestados por la skill, con validación determinista del plan (`plan-check`: waves con archivos, verificación y dependencias solo hacia atrás; MEDIUM ≤ 2 waves). Ninguna ruta hace commits.
+
+### H2.9 — Registro de agentes y especialistas por dominio
+
+- El clasificador devuelve `domains` (security, auth, payments, accounting, compliance, data-migrations, infrastructure).
+- Cada dominio tiene un riesgo mínimo (`domain_min_risk`) y un *domain pack*: los agentes que se buscan por fase (research y review) y un checklist.
+- El registro descubre los agentes del proyecto, del usuario, de los plugins instalados y de AgentShip. El matcher elige (dominio × fase) → agente con el modelo del rol, por prioridad de fuente. Si no hay especialista instalado, `general-purpose` cumple ese papel con el checklist del dominio.
+- Integración con colecciones externas (opción A): se instalan como plugins solo las categorías que el usuario aprueba (p. ej. VoltAgent `voltagent-domains`). AgentShip no depende de ellas.
+
+### Criterios de aceptación
+
+- Las propuestas se validan y su elección se enruta sin LLM. Está cubierto por tests, incluido el caso en que el riesgo no baja.
+- No queda ningún código ni dependencia de GSD.
+- El matcher se prueba con un registro simulado (proyecto, plugin, sin especialistas, comodines y límite por fase).
+- `npm run check` pasa.
 
 ---
 
@@ -929,7 +972,7 @@ Utilizar versionado semántico y changelog.
 
 ### Dependencias
 
-Comprobar compatibilidad con GSD Core sin instalarlo o modificarlo silenciosamente.
+Comprobar compatibilidad con las colecciones de especialistas instaladas sin instalarlas ni modificarlas silenciosamente.
 
 ### Distribución
 
@@ -975,7 +1018,7 @@ Para verificar:
 - Carga del plugin.
 - Invocación de skills.
 - Delegación a subagentes.
-- Integración con GSD.
+- Motor de fases nativo (plan-check, propuestas, selección y matcher de agentes).
 - Integración con Codex.
 - Captura de resultados.
 - Ejecución de gates.
@@ -1005,7 +1048,7 @@ Antes de implementar cada integración, resolver y documentar:
 |---|---|
 | Node.js / TypeScript | Preferencia inicial para scripts y adapters |
 | Gestor de paquetes | Elegir uno y fijarlo en el repositorio |
-| GSD Core | Verificar versión y comandos reales |
+| Especialistas externos | Opcionales; se instalan solo las categorías que el usuario aprueba |
 | Formato de configuración | Esquema versionado y validado |
 | Estado de ejecución | Archivos locales inicialmente |
 | Codex | CLI opcional, sin API obligatoria |
@@ -1022,7 +1065,7 @@ No incorporar bases de datos, colas, servidores o servicios cloud sin una necesi
 
 | Orden | Hito | Resultado |
 |---|---|---|
-| 1 | Hito 2 | Plugin básico + clasificación + GSD |
+| 1 | Hito 2 (+ H2.7–H2.9) | Plugin básico + clasificación + propuestas + motor nativo + especialistas |
 | 2 | Hito 3 | Codex independiente |
 | 3 | Hito 4 | Gates y recuperación |
 | 4 | Hito 5 | Optimización y telemetría |

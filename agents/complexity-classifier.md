@@ -46,6 +46,14 @@ authentication or authorization; security; payments or money movement; destructi
 
 `HIGH` when the task is clear and you located the code it touches. `MEDIUM` when some details are open. `LOW` when you cannot tell what is being asked or where it lives. Never guess a lower complexity to compensate for missing information: say `LOW` confidence instead.
 
+## Domains
+
+List the business or technical domains the task touches, using only these names: `security`, `auth`, `payments`, `accounting`, `compliance`, `data-migrations`, `infrastructure`. Leave the list empty when none applies. AgentShip uses them to call specialist agents and to apply each domain's minimum risk.
+
+## Approaches
+
+Set `multiple_approaches` to `true` when there is more than one reasonable way to do the task that differs in scope, design or risk (for example a local fix versus a module-wide change). AgentShip then offers the developer proposals before routing.
+
 ## Output
 
 Return exactly this object, no prose around it:
@@ -58,7 +66,9 @@ Return exactly this object, no prose around it:
   "reasons": ["short, concrete reasons, citing files when you can"],
   "affected_modules": ["paths or module names"],
   "unresolved_questions": ["questions a developer would need answered"],
-  "recommended_workflow": "SMALL | MEDIUM | LARGE"
+  "recommended_workflow": "SMALL | MEDIUM | LARGE",
+  "domains": ["accounting"],
+  "multiple_approaches": false
 }
 ```
 

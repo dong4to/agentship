@@ -1,0 +1,102 @@
+{
+  "proposals": [
+    {
+      "id": 1,
+      "title": "Local fix",
+      "summary": "Local fix summary",
+      "approach": "Local fix approach",
+      "scope_in": [
+        "a"
+      ],
+      "scope_out": [
+        "b"
+      ],
+      "tradeoffs": [
+        "c"
+      ],
+      "recommended": false,
+      "classification": {
+        "complexity": "SMALL",
+        "risk": "LOW",
+        "confidence": "HIGH",
+        "reasons": [
+          "single function in src/cart.js",
+          "clear expected behaviour, existing tests"
+        ],
+        "affected_modules": [
+          "src/cart.js"
+        ],
+        "unresolved_questions": [],
+        "recommended_workflow": "SMALL"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Root-cause fix",
+      "summary": "Root-cause fix summary",
+      "approach": "Root-cause fix approach",
+      "scope_in": [
+        "a"
+      ],
+      "scope_out": [
+        "b"
+      ],
+      "tradeoffs": [
+        "c"
+      ],
+      "recommended": true,
+      "classification": {
+        "complexity": "MEDIUM",
+        "risk": "LOW",
+        "confidence": "HIGH",
+        "reasons": [
+          "new feature in one module",
+          "follows existing patterns",
+          "needs a short plan and new tests"
+        ],
+        "affected_modules": [
+          "src/orders.js",
+          "test/orders.test.js"
+        ],
+        "unresolved_questions": [
+          "CSV delimiter and header order"
+        ],
+        "recommended_workflow": "MEDIUM"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Module redesign",
+      "summary": "Module redesign summary",
+      "approach": "Module redesign approach",
+      "scope_in": [
+        "a"
+      ],
+      "scope_out": [
+        "b"
+      ],
+      "tradeoffs": [
+        "c"
+      ],
+      "recommended": false,
+      "classification": {
+        "complexity": "LARGE",
+        "risk": "MEDIUM",
+        "confidence": "MEDIUM",
+        "reasons": [
+          "introduces a persistence abstraction used by several modules",
+          "new architectural decision"
+        ],
+        "affected_modules": [
+          "src/store.js",
+          "src/cart.js",
+          "src/orders.js"
+        ],
+        "unresolved_questions": [
+          "which backends are required first"
+        ],
+        "recommended_workflow": "LARGE"
+      }
+    }
+  ]
+}
