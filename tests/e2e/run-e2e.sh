@@ -27,6 +27,10 @@ for name in "${!tasks[@]}"; do
     clone="$out/run-$name"
     rm -rf "$clone" && git clone -q "$fixture" "$clone" && cd "$clone" || exit 1
     git remote remove origin
+    # Headless runs have nobody to answer the command-approval question: approve the fixture's test command
+    # up front (this is the developer running the harness). Approvals are keyed by this temp clone's path.
+    rd="$(node "$root/src/cli.ts" start --project "$clone" | node -e "let s='';process.stdin.on('data',c=>s+=c).on('end',()=>console.log(JSON.parse(s).run_dir))")"
+    node "$root/src/cli.ts" approve-command "$rd" test >/dev/null
     start=$(date +%s)
     timeout 2700 claude -p "/agentship:dev --no-proposals ${tasks[$name]}" \
       --plugin-dir "$root" --setting-sources project,local --no-session-persistence \

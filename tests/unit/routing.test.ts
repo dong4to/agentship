@@ -141,12 +141,19 @@ test('bad flags and empty tasks are errors, not silent defaults', () => {
 
 test('resume flags: valid id + proposal, and their misuse', () => {
   const ok = parseRequest('--resume 2026-11-12T10-00-00-000Z --proposal 2');
-  assert.deepEqual([ok.errors, ok.resume], [[], { runId: '2026-11-12T10-00-00-000Z', proposal: 2 }]);
+  assert.deepEqual([ok.errors, ok.resume], [[], { runId: '2026-11-12T10-00-00-000Z', proposal: 2, approve: false }]);
+  assert.deepEqual(parseRequest('--resume 2026-11-12T10-00-00-000Z').errors, []);
+  assert.equal(parseRequest('--resume 2026-11-12T10-00-00-000Z --approve').resume?.approve, true);
+  assert.match(parseRequest('--approve fix it').errors.join(), /only works together with --resume/);
+  assert.match(parseRequest('--resume 2026-11-12T10-00-00-000Z --approve --proposal 1').errors.join(), /not both/);
+  assert.equal(parseRequest('--profile economy fix it').profile, 'economy');
+  assert.match(parseRequest('--profile $(x) fix it').errors.join(), /--profile expects/);
   assert.match(parseRequest('--resume ../../etc --proposal 1').errors.join(), /--resume expects a run id/);
   assert.match(parseRequest('--proposal 2 fix it').errors.join(), /only works together with --resume/);
   assert.match(parseRequest('--resume 2026-11-12T10-00-00-000Z --proposal 4').errors.join(), /expects 1, 2 or 3/);
-  assert.match(parseRequest('--resume 2026-11-12T10-00-00-000Z').errors.join(), /needs --proposal/);
-  assert.match(parseRequest('--resume 2026-11-12T10-00-00-000Z --proposal 1 more text').errors.join(), /takes no task text/);
+  assert.match(parseRequest('--resume 2026-11-12T10-00-00-000Z --proposal 1 more text').errors.join(), /takes no extra text/);
+  const reply = parseRequest('--resume 2026-11-12T10-00-00-000Z defaults OK, also fix canRefund');
+  assert.deepEqual([reply.errors, reply.task], [[], 'defaults OK, also fix canRefund']);
 });
 
 // --- classification extensions (H2.7 / H2.9)

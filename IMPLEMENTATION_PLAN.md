@@ -4,11 +4,11 @@
 **Repositorio previsto:** `agentship`  
 **Tagline:** Get it done. Ship it right.  
 **Tipo de producto:** Plugin de orquestación para Claude Code  
-**Estado:** Hito 2 entregado; revisión H2.7–H2.9 (propuestas, motor nativo, especialistas) implementada  
+**Estado:** Hitos 2 a 6 implementados (1.0.0-rc.1); pendiente la E2E con Claude real antes de la 1.0.0  
 **Fecha:** 29 de octubre de 2026 · revisado el 12 de noviembre de 2026  
 **Inicio del desarrollo:** Hito 2
 
-> Estado de ejecución del plan: ver [docs/milestones/h2-report.md](docs/milestones/h2-report.md).
+> Estado de ejecución del plan: ver [docs/milestones/h2-report.md](docs/milestones/h2-report.md) y [docs/milestones/h3-h6-report.md](docs/milestones/h3-h6-report.md).
 >
 > **Revisión del 12/11/2026.** GSD Core se retira por completo y lo sustituye un motor de fases nativo. Se agregan la fase de Propuestas y los especialistas por dominio. Los detalles están en §9.4. Las menciones a GSD que quedan en este documento son históricas y ya no aplican.
 
@@ -704,6 +704,8 @@ No aceptar automáticamente todos los hallazgos de Codex.
 
 **Resultado esperado:** AgentShip v0.2 — revisión cross-model opcional.
 
+> **Estado (12/11/2026):** implementado en 1.0.0-rc.1. Probado con Codex 0.145.0 real. Detalle en [h3-h6-report](docs/milestones/h3-h6-report.md).
+
 ---
 
 # 11. Hito 4 — Gates, seguridad y recuperación
@@ -797,6 +799,8 @@ No depender únicamente de que Claude recuerde qué pasos se completaron.
 - Los errores no se presentan como éxitos.
 
 **Resultado esperado:** AgentShip v0.3 — workflows con controles confiables.
+
+> **Estado (12/11/2026):** implementado en 1.0.0-rc.1 (`state.json`, gates en código, reintentos, aprobaciones con prompt de permisos, `--resume` y `tree-check`). La integración con CI de GitHub queda pendiente porque requiere push.
 
 ---
 
@@ -921,6 +925,8 @@ No optimizar únicamente por cantidad de tokens.
 
 **Resultado esperado:** AgentShip v0.4 — selección de modelos medible y configurable.
 
+> **Estado (12/11/2026):** implementado en 1.0.0-rc.1 (tiers, perfiles, escalamiento, `report` y `compare`). Falta ejecutar `run-eval.sh`, que consume modelos.
+
 ---
 
 # 13. Hito 6 — Distribución, reutilización y madurez
@@ -991,6 +997,8 @@ No publicar automáticamente.
 - Las dependencias faltantes generan mensajes claros.
 
 **Resultado esperado:** AgentShip v1.0 — plugin reutilizable.
+
+> **Estado (12/11/2026):** implementado como 1.0.0-rc.1 (marketplace, configuración por capas, `doctor` y test de instalación). Faltan la LICENSE y el icono, que decide el dueño, y la publicación, que no se hace automáticamente.
 
 ---
 
@@ -1066,10 +1074,10 @@ No incorporar bases de datos, colas, servidores o servicios cloud sin una necesi
 | Orden | Hito | Resultado |
 |---|---|---|
 | 1 | Hito 2 (+ H2.7–H2.9) | Plugin básico + clasificación + propuestas + motor nativo + especialistas |
-| 2 | Hito 3 | Codex independiente |
-| 3 | Hito 4 | Gates y recuperación |
-| 4 | Hito 5 | Optimización y telemetría |
-| 5 | Hito 6 | Distribución y reutilización |
+| 2 | Hito 3 | Codex independiente ✔ |
+| 3 | Hito 4 | Gates y recuperación ✔ |
+| 4 | Hito 5 | Optimización y telemetría ✔ |
+| 5 | Hito 6 | Distribución y reutilización ✔ (rc) |
 
 Cada hito debe cerrarse con:
 

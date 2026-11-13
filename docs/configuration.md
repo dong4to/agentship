@@ -1,67 +1,111 @@
-# Configuración (v0.2)
+# Configuración
 
-En v0.2 la configuración es la que viene con el plugin. Los overrides por repositorio corresponden al Hito 6.
+AgentShip combina tres capas de configuración, en este orden:
 
-## `config/default-policies.json`
-
-| Clave | Default | Significado |
+| Capa | Archivo | Confianza |
 |---|---|---|
-| `risk_floor.{LOW,MEDIUM,HIGH}` | `SMALL`, `SMALL`, `LARGE` | Ruta mínima según el riesgo |
-| `high_risk_confirmed_downgrade_floor` | `MEDIUM` | Mínimo para una tarea HIGH aunque se confirme bajarla |
-| `low_confidence` | `discovery` → `clarify` | Documenta el comportamiento ante confianza LOW, que está fijado en el código |
-| `domain_min_risk` | security/auth/payments/compliance → HIGH; accounting/data-migrations/infrastructure → MEDIUM | Riesgo mínimo cuando el clasificador marca ese dominio |
-| `proposals.max` | `3` | Máximo de propuestas |
-| `proposals.trigger_min_route` | `MEDIUM` | Hay propuestas cuando la ruta es al menos esta… |
-| `proposals.trigger_confidence_below` | `HIGH` | …o la confianza es menor que esta… |
-| `proposals.trigger_on_multiple_approaches` | `true` | …o el clasificador ve más de un enfoque válido |
+| Defaults | `config/*.json` del plugin | — |
+| Usuario | `$CLAUDE_CONFIG_DIR/agentship/config.json` (por defecto `~/.claude/agentship/config.json`) | Alta: es tu máquina |
+| Proyecto | `<proyecto>/agentship.config.json` | **Baja: es contenido del repositorio.** Solo puede **endurecer** la política, y es el único lugar donde se declaran comandos. |
 
-`--proposals` las fuerza y `--no-proposals` las salta.
+`node <plugin>/src/cli.ts config --project <dir>` muestra la configuración efectiva y sus errores. Una configuración inválida detiene la ejecución en lugar de usar los defaults en silencio. AgentShip nunca escribe en estos archivos.
 
-## `config/default-models.json`
+## Ejemplo de configuración de usuario
 
-Roles → `{runtime, model, effort}`. Se usan alias (`sonnet`, `opus`), nunca IDs fijos. Son hipótesis iniciales (plan §6.1), no resultados de un benchmark.
+```json
+{
+  "model_profile": "balanced",
+  "codex": { "enabled": "auto", "timeout_seconds": 900, "model": "gpt-5.6-sol" },
+  "retries": { "tests_per_wave": 2, "review_rounds": 1, "llm_output": 1 },
+  "tiers": { "haiku": { "runtime": "claude", "model": "haiku", "effort": "low" } },
+  "profiles": { "mine": { "classifier": "haiku", "planner": "deep" } }
+}
+```
 
-| Rol | Modelo | Effort | Dónde se aplica |
+## Ejemplo de configuración de proyecto (`agentship.config.json`)
+
+```json
+{
+  "commands": { "test": "npm test", "lint": "npm run lint", "typecheck": "npm run typecheck", "timeout_seconds": 1200 },
+  "policies": {
+    "domain_min_risk": { "accounting": "HIGH" },
+    "independent_review": { "required_at_risk": "MEDIUM" }
+  },
+  "domains": {
+    "tax": {
+      "description": "Impuestos y retenciones",
+      "agents": { "research": ["tax-*"], "review": ["tax-*"] },
+      "checklist": ["Las tasas son datos con fecha de vigencia", "El redondeo sigue la norma local"]
+    }
+  }
+}
+```
+
+## Claves
+
+| Clave | Capas | Valores | Default |
 |---|---|---|---|
-| classifier | sonnet | low | `agentship:complexity-classifier` |
-| discovery | sonnet | low | `Explore` |
-| proposer | opus | medium | `agentship:proposer` |
-| domain_research | opus | medium | Especialistas de dominio antes de proponer y planificar |
-| requirements | sonnet | medium | La skill (LARGE, `requirements.md`) |
-| planner / architect | opus | high | `agentship:planner` |
-| implementer | sonnet | medium | `agentship:implementer`, una wave a la vez |
-| internal_reviewer | sonnet | high | `agentship:reviewer` |
-| domain_review | sonnet | high | Especialistas de dominio en la revisión |
-| test_triage | sonnet | low | Reservado |
+| `model_profile` | usuario, proyecto | nombre de perfil | `balanced` |
+| `tiers.<n>` | usuario, proyecto | `{runtime: claude\|codex, model, effort: low…max}` | fast, balanced, strong, reasoning, deep, external |
+| `profiles.<n>.<rol>` | usuario, proyecto | nombre de tier | `balanced`, `economy`, `quality` |
+| `retries.{tests_per_wave,review_rounds,llm_output}` | usuario, proyecto | 0–5 (intentos extra) | 2, 1, 1 |
+| `codex.enabled` | usuario, proyecto | `"auto"`, `true` o `false` | `"auto"` |
+| `codex.timeout_seconds` | usuario, proyecto | 30–3600 | 900 |
+| `codex.model` | usuario, proyecto | modelo de Codex o `null` (usa el de `~/.codex/config.toml`) | `null` |
+| `commands.{test,lint,typecheck}` | **solo proyecto** | una línea | se toman de los scripts de `package.json` |
+| `commands.timeout_seconds` | solo proyecto | 10–7200 | 1200 |
+| `policies.risk_floor`, `high_risk_confirmed_downgrade_floor`, `domain_min_risk` | usuario; el proyecto solo puede endurecerlas | ver `config/default-policies.json` | |
+| `policies.independent_review.required_at_risk` | usuario; el proyecto solo puede bajarlo | `LOW\|MEDIUM\|HIGH` | `HIGH` |
+| `policies.independent_review.offered_on_routes` | usuario, proyecto | lista de rutas | `["LARGE"]` |
+| `policies.proposals.*` | usuario, proyecto | `max` (1–3) y los disparadores | ver workflows |
+| `domains.<n>` | usuario, proyecto | domain pack | 7 dominios |
+| `max_specialists_per_phase` | usuario, proyecto | 0–5 | 2 |
 
-El Agent tool solo admite el modelo como override. El effort se aplica desde el frontmatter de los agentes de AgentShip; en los especialistas externos rige el effort que declaren.
+## Perfiles de modelos
 
-## `config/domain-packs.json`
+Cada rol se asigna a un tier dentro de cada perfil, y cada tier se traduce a `{runtime, model, effort}`. Se usan aliases (`sonnet`, `opus`), nunca IDs. Son hipótesis iniciales; compáralas con `tests/e2e/run-eval.sh`.
 
-Por cada dominio define:
+| Rol | balanced | economy | quality |
+|---|---|---|---|
+| classifier, discovery | sonnet low | sonnet low | sonnet medium |
+| proposer, domain_research | opus medium | sonnet medium | opus high |
+| requirements | sonnet medium | sonnet low | sonnet high |
+| architect, planner | opus high | opus medium | opus high |
+| implementer | sonnet medium | sonnet medium | sonnet high |
+| internal_reviewer, domain_review | sonnet high | sonnet medium | opus high |
+| fallback_reviewer | opus high | opus medium | opus high |
+| independent_reviewer | Codex | Codex | Codex |
 
-- `agents.research` y `agents.review`: los nombres de agentes que se buscan, en orden de preferencia. Admiten el comodín `*`. Los nombres coinciden con los de la colección [VoltAgent](https://github.com/VoltAgent/awesome-claude-code-subagents), pero sirve cualquier agente con ese nombre en el proyecto, el usuario u otro plugin.
-- `checklist`: las reglas que se inyectan en el planner y en el reviewer, haya o no especialista instalado.
+**Escalamiento:** después de 2 fallos seguidos en un paso, el `implementer` pasa al tier `deep`. Con el `planner` ocurre después de 1 fallo. Lo devuelve `cli.ts retry … --role <rol>`.
 
-`max_specialists_per_phase` (2 por defecto) limita cuántos especialistas se llaman en cada fase, para contener el uso de tokens.
+Por ejecución: `/agentship:dev --profile economy <tarea>`.
 
-### Agregar especialistas
+## Comandos del proyecto y aprobación
 
-- **Del proyecto:** pon un agente en `<proyecto>/.claude/agents/`, por ejemplo `acme-accounting-reviewer.md`. Tiene prioridad sobre los demás.
-- **Colección VoltAgent:** instala solo las categorías que necesites. Por ejemplo, `voltagent-domains` (fintech, payments, risk), `voltagent-qa-sec` (security) o `voltagent-data-ai` (bases de datos):
+AgentShip ejecuta `test`, `lint` y `typecheck` **solo si**:
+
+1. el proyecto los declara (en `agentship.config.json` o en los scripts de `package.json`), y
+2. el desarrollador aprobó **esa misma línea de comando** para **ese proyecto**.
+
+Las aprobaciones se guardan en `$CLAUDE_CONFIG_DIR/agentship/approved-commands.json`, fuera del repositorio, así que un repo no puede aprobarse a sí mismo. Si el comando cambia, hay que aprobarlo de nuevo. Además, la skill no tiene pre-autorizado `approve-command`, de modo que Claude Code le pide permiso al desarrollador cada vez.
+
+## Especialistas
+
+Consulta `config/domain-packs.json`. Para agregar especialistas:
+
+- **Del proyecto:** pon agentes en `<proyecto>/.claude/agents/`. Tienen prioridad sobre los demás.
+- **Colección VoltAgent:** instala solo las categorías que uses (cada una suma descripciones al contexto de todas las sesiones):
 
   ```bash
   claude plugin marketplace add VoltAgent/awesome-claude-code-subagents
   claude plugin install voltagent-domains
   ```
 
-  Cada categoría instalada suma las descripciones de sus agentes al contexto de todas las sesiones. Conviene instalar pocas.
-
-`node src/cli.ts agents <run_dir>` muestra qué especialista se eligió por dominio y fase, y cuántos agentes se encontraron (`agents_scanned`).
-
 ## Variables de entorno
 
 | Variable | Uso |
 |---|---|
-| `CLAUDE_CONFIG_DIR` | Directorio de usuario de Claude Code. AgentShip lo usa para descubrir los agentes del usuario y los plugins instalados (`plugins/installed_plugins.json`). Default: `~/.claude`. |
-| `CLAUDE_PLUGIN_ROOT` | Lo define Claude Code; la skill lo usa para invocar `src/cli.ts`. |
+| `CLAUDE_CONFIG_DIR` | Directorio de usuario de Claude Code: configuración de usuario, aprobaciones, agentes y plugins instalados. Default: `~/.claude`. |
+| `CLAUDE_PLUGIN_ROOT` | Lo define Claude Code; la skill lo usa para invocar el CLI. |
+| `AGENTSHIP_CODEX_BIN` | Ruta a otro ejecutable de Codex. Los tests lo usan para un Codex falso. |
+| `AGENTSHIP_EVAL_TASK` | Etiqueta de tarea para la evaluación de perfiles (`run-eval.sh`). |

@@ -1,6 +1,6 @@
 {
   "name": "agentship",
-  "version": "0.2.0",
+  "version": "1.0.0-rc.1",
   "private": true,
   "description": "Claude Code plugin that classifies a dev task by complexity, risk and domain, offers approaches, and routes it to the right workflow.",
   "type": "module",

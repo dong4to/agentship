@@ -1,7 +1,7 @@
 {
   "name": "agentship",
-  "version": "0.2.0",
-  "description": "Classifies a dev task by complexity, risk and domain, offers up to 3 approaches, then runs the right workflow (SMALL / MEDIUM / LARGE) with domain specialist agents, tests, review and human gates.",
+  "version": "1.0.0-rc.1",
+  "description": "Classifies a dev task by complexity, risk and domain, offers up to 3 approaches, then runs the right workflow (SMALL / MEDIUM / LARGE) with domain specialists, code-enforced gates, independent Codex review, resumable state and telemetry.",
   "author": {
     "name": "Luis Felipe Poma"
   },

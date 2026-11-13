@@ -1,0 +1,93 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "summary",
+    "coverage",
+    "limitations",
+    "reviewed_files",
+    "findings"
+  ],
+  "properties": {
+    "summary": {
+      "type": "string"
+    },
+    "coverage": {
+      "type": "string",
+      "enum": [
+        "complete",
+        "partial",
+        "none"
+      ]
+    },
+    "limitations": {
+      "type": "string"
+    },
+    "reviewed_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "severity",
+          "category",
+          "file",
+          "line",
+          "title",
+          "evidence",
+          "recommendation"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "correctness",
+              "security",
+              "concurrency",
+              "regression",
+              "contract",
+              "tests",
+              "requirements"
+            ]
+          },
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

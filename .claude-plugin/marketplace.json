@@ -1,0 +1,17 @@
+{
+  "name": "agentship",
+  "owner": {
+    "name": "Luis Felipe Poma"
+  },
+  "metadata": {
+    "description": "AgentShip: classify, propose, route and ship development tasks with gates."
+  },
+  "plugins": [
+    {
+      "name": "agentship",
+      "source": "./",
+      "description": "Classifies a dev task by complexity, risk and domain, offers approaches, and runs SMALL / MEDIUM / LARGE workflows with domain specialists, code-enforced gates, independent Codex review and telemetry.",
+      "version": "1.0.0-rc.1"
+    }
+  ]
+}

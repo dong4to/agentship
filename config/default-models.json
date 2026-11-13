@@ -1,17 +1,65 @@
 {
-  "version": 2,
-  "_note": "Initial hypotheses, not benchmark results (plan section 6.1). Aliases only; no pinned model IDs. Effort is applied through agent frontmatter; the Agent tool only takes a model override.",
-  "roles": {
-    "classifier": { "runtime": "claude", "model": "sonnet", "effort": "low" },
-    "discovery": { "runtime": "claude", "model": "sonnet", "effort": "low" },
-    "proposer": { "runtime": "claude", "model": "opus", "effort": "medium" },
-    "domain_research": { "runtime": "claude", "model": "opus", "effort": "medium" },
-    "requirements": { "runtime": "claude", "model": "sonnet", "effort": "medium" },
-    "architect": { "runtime": "claude", "model": "opus", "effort": "high" },
-    "planner": { "runtime": "claude", "model": "opus", "effort": "high" },
-    "implementer": { "runtime": "claude", "model": "sonnet", "effort": "medium" },
-    "test_triage": { "runtime": "claude", "model": "sonnet", "effort": "low" },
-    "internal_reviewer": { "runtime": "claude", "model": "sonnet", "effort": "high" },
-    "domain_review": { "runtime": "claude", "model": "sonnet", "effort": "high" }
+  "version": 3,
+  "_note": "Roles map to tiers per profile; tiers map to runtime/model/effort. Aliases only, no pinned model IDs. Initial hypotheses, not benchmark results (plan 6.1, 12.2). The Agent tool only takes a model override; effort is applied through agent frontmatter.",
+  "default_profile": "balanced",
+  "tiers": {
+    "fast": { "runtime": "claude", "model": "sonnet", "effort": "low" },
+    "balanced": { "runtime": "claude", "model": "sonnet", "effort": "medium" },
+    "strong": { "runtime": "claude", "model": "sonnet", "effort": "high" },
+    "reasoning": { "runtime": "claude", "model": "opus", "effort": "medium" },
+    "deep": { "runtime": "claude", "model": "opus", "effort": "high" },
+    "external": { "runtime": "codex", "model": "default", "effort": "high" }
+  },
+  "profiles": {
+    "balanced": {
+      "classifier": "fast",
+      "discovery": "fast",
+      "proposer": "reasoning",
+      "domain_research": "reasoning",
+      "requirements": "balanced",
+      "architect": "deep",
+      "planner": "deep",
+      "implementer": "balanced",
+      "test_triage": "fast",
+      "internal_reviewer": "strong",
+      "domain_review": "strong",
+      "independent_reviewer": "external",
+      "fallback_reviewer": "deep"
+    },
+    "economy": {
+      "classifier": "fast",
+      "discovery": "fast",
+      "proposer": "balanced",
+      "domain_research": "balanced",
+      "requirements": "fast",
+      "architect": "reasoning",
+      "planner": "reasoning",
+      "implementer": "balanced",
+      "test_triage": "fast",
+      "internal_reviewer": "balanced",
+      "domain_review": "balanced",
+      "independent_reviewer": "external",
+      "fallback_reviewer": "reasoning"
+    },
+    "quality": {
+      "classifier": "balanced",
+      "discovery": "balanced",
+      "proposer": "deep",
+      "domain_research": "deep",
+      "requirements": "strong",
+      "architect": "deep",
+      "planner": "deep",
+      "implementer": "strong",
+      "test_triage": "balanced",
+      "internal_reviewer": "deep",
+      "domain_review": "deep",
+      "independent_reviewer": "external",
+      "fallback_reviewer": "deep"
+    }
+  },
+  "escalation": {
+    "_note": "After this many failed attempts on one step, the role runs on the target tier for the next attempt.",
+    "implementer": { "after_failures": 2, "to": "deep" },
+    "planner": { "after_failures": 1, "to": "deep" }
   }
 }

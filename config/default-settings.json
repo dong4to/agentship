@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "retries": {
+    "_note": "Extra attempts allowed after the first one.",
+    "tests_per_wave": 2,
+    "review_rounds": 1,
+    "llm_output": 1
+  },
+  "codex": {
+    "enabled": "auto",
+    "timeout_seconds": 900,
+    "model": null
+  },
+  "independent_review": {
+    "_note": "Risk at or above which an independent (Codex) review is required before the run can finish. Routes where it is offered when available.",
+    "required_at_risk": "HIGH",
+    "offered_on_routes": ["LARGE"]
+  },
+  "commands": {
+    "_note": "Project test/lint/typecheck commands. Only the project config (agentship.config.json) may set them; otherwise package.json scripts are used. Each command needs a one-time developer approval per project.",
+    "timeout_seconds": 1200
+  }
+}
