@@ -4,7 +4,7 @@
 
 **Get it done. Ship it right.**
 
-Un plugin de Claude Code que convierte cualquier tarea de desarrollo en un flujo estructurado, verificable y con humanos en los puntos que importan.
+A Claude Code plugin that turns any development task into a structured, verifiable workflow, with a human in the loop where it matters.
 
 ![version](https://img.shields.io/badge/version-1.0.0--rc.1-blue)
 ![claude code](https://img.shields.io/badge/Claude%20Code-%E2%89%A5%202.1.292-d97757)
@@ -12,103 +12,103 @@ Un plugin de Claude Code que convierte cualquier tarea de desarrollo en un flujo
 ![tests](https://img.shields.io/badge/tests-91%20passing-brightgreen)
 ![deps](https://img.shields.io/badge/runtime%20deps-0-lightgrey)
 
-[Inicio rápido](#inicio-rápido) · [Cómo funciona](#cómo-funciona) · [Uso](#uso) · [Configuración](docs/configuration.md) · [Documentación](#documentación)
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Usage](#usage) · [Configuration](docs/configuration.md) · [Documentation](#documentation)
 
 </div>
 
 ---
 
-## Por qué AgentShip
+## Why AgentShip
 
-Pedirle a un agente "arregla esto" funciona bien para un cambio de una línea, pero tiene riesgos cuando el cambio toca pagos, permisos o media docena de módulos. AgentShip decide **cuánto proceso necesita cada tarea** y después **hace cumplir ese proceso con código**, no con buenas intenciones:
+Asking an agent to "fix this" is fine for a one-line change. It gets risky when the change touches payments, permissions, or half a dozen modules. AgentShip decides **how much process each task needs**, then **enforces that process in code**, not by good intentions:
 
-- 🧭 **Clasifica** cada tarea por complejidad, riesgo y dominio, y la envía a la ruta adecuada.
-- 💡 **Propone** hasta 3 enfoques cuando hay más de un camino razonable. Tú eliges.
-- 🧑‍🔬 **Llama a especialistas** del dominio (contabilidad, pagos, auth, seguridad…), cada uno con el modelo que corresponde a su fase.
-- 🚦 **Hace cumplir los gates en código**: tests en verde, revisión sin bloqueantes y aprobación humana. Si falta algo, la ejecución queda `blocked`, nunca "completada".
-- 🔍 **Pide una segunda opinión** a Codex: revisa el diff en modo read-only, y Claude verifica cada hallazgo antes de aceptarlo.
-- ♻️ **Es reanudable y medible**: el estado vive en disco, hay perfiles de modelos y cada ejecución deja un reporte.
+- 🧭 **Classifies** every task by complexity, risk and domain, and routes it accordingly.
+- 💡 **Proposes** up to 3 approaches when there is more than one reasonable path. You pick.
+- 🧑‍🔬 **Calls domain specialists** (accounting, payments, auth, security…), each on the model that fits its phase.
+- 🚦 **Enforces gates in code**: passing tests, a review with no blocking findings, human approval. If anything is missing, the run is `blocked`, never "done".
+- 🔍 **Gets a second opinion** from Codex, which reviews the diff read-only. Claude verifies every finding before accepting it.
+- ♻️ **Is resumable and measurable**: state lives on disk, model profiles are configurable, and every run leaves a report.
 
-> AgentShip **nunca** hace commit, push, PR ni deploy. Deja los cambios en tu working tree y un `summary.md` listo para el PR.
+> AgentShip **never** commits, pushes, opens PRs or deploys. It leaves the changes in your working tree, plus a PR-ready `summary.md`.
 
-## Inicio rápido
+## Quick start
 
 ```bash
 claude plugin marketplace add dong4to/agentship
 claude plugin install agentship@agentship
 ```
 
-Abre Claude Code en tu proyecto y escribe:
+Open Claude Code in your project and run:
 
 ```text
-/agentship:dev applyDiscount acepta porcentajes > 100; limitarlo a 0-100
+/agentship:dev applyDiscount accepts percentages > 100; clamp it to 0-100
 ```
 
-Para comprobar el entorno (Node, git, Codex, configuración, comando de tests y especialistas), usa la ruta del plugin que muestra `claude plugin list`:
+To check your environment (Node, git, Codex, configuration, test command and specialists), use the plugin path shown by `claude plugin list`:
 
 ```bash
-node <ruta-del-plugin>/src/cli.ts doctor --project .
+node <plugin-path>/src/cli.ts doctor --project .
 ```
 
-## Cómo funciona
+## How it works
 
 ```mermaid
 flowchart LR
-    T["Tarea"] --> C["Clasificación<br/><sub>complejidad · riesgo · dominio</sub>"]
-    C --> P{"¿Varios<br/>enfoques?"}
-    P -- sí --> PR["Propuestas 1–3<br/><sub>tú eliges</sub>"]
+    T["Task"] --> C["Classification<br/><sub>complexity · risk · domain</sub>"]
+    C --> P{"Several<br/>approaches?"}
+    P -- yes --> PR["Proposals 1–3<br/><sub>you choose</sub>"]
     P -- no --> R
-    PR --> R["Política determinista"]
+    PR --> R["Deterministic policy"]
     R --> S["SMALL"]
     R --> M["MEDIUM"]
     R --> L["LARGE / HIGH-RISK"]
-    S & M & L --> G["Gates en código<br/><sub>tests · review · Codex · aprobación</sub>"]
+    S & M & L --> G["Gates in code<br/><sub>tests · review · Codex · approval</sub>"]
     G --> D["summary.md + report.md"]
 ```
 
-Un LLM clasifica la tarea, pero **la ruta la decide código determinista y testeado**. El riesgo HIGH siempre termina en LARGE, una clasificación inválida nunca cae en SMALL, y bajar de ruta una tarea HIGH exige confirmación explícita.
+An LLM classifies the task, but **the route is decided by deterministic, tested code**. HIGH risk always ends up LARGE, an invalid classification never falls back to SMALL, and lowering the route of a HIGH-risk task needs explicit confirmation.
 
-| Ruta | Cuándo | Fases |
+| Route | When | Phases |
 |---|---|---|
-| **SMALL** | Cambio localizado, requisitos claros, riesgo bajo | implementar → tests → resumen |
-| **MEDIUM** | Feature de un módulo, plan breve | discovery → plan → waves → tests → revisión → *Codex si aplica* → resumen |
-| **LARGE / HIGH-RISK** | Varios módulos, decisiones nuevas o riesgo alto | discovery → research → requisitos → plan → **aprobación humana** → waves → tests → revisión → **Codex** → UAT → resumen |
+| **SMALL** | Localized change, clear requirements, low risk | implement → tests → summary |
+| **MEDIUM** | One-module feature, short plan | discovery → plan → waves → tests → review → *Codex if applicable* → summary |
+| **LARGE / HIGH-RISK** | Several modules, new decisions, or high risk | discovery → research → requirements → plan → **human approval** → waves → tests → review → **Codex** → UAT → summary |
 
 <details>
-<summary><b>Qué exige cada gate</b></summary>
+<summary><b>What each gate requires</b></summary>
 
-| Gate | Condición para pasar |
+| Gate | Passes when |
 |---|---|
-| Tests | El último `run test` terminó con exit 0. Lint y typecheck pasan si el proyecto los declara. |
-| Revisión | En la última ronda no queda ningún hallazgo HIGH ni criterio `NOT_MET` sin una excepción que tú hayas aprobado. |
-| Codex | Revisión `complete`, con todos los hallazgos adjudicados y sin bloqueantes. Si Codex no está disponible y la revisión es obligatoria, decides tú: un fallback con Claude o renunciar a la revisión. |
-| Gate humano | Aprobaste el plan, en la conversación o con `--resume <id> --approve`. |
-| Implementación | `tree-check` sin errores: nadie movió HEAD y el plan no toca archivos que tú ya estabas editando. |
+| Tests | The last `run test` exited 0. Lint and typecheck pass if the project declares them. |
+| Review | The latest round has no HIGH finding and no `NOT_MET` criterion, unless you approved an exception for it. |
+| Codex | The review is `complete`, every finding is adjudicated, and nothing is blocking. If Codex is unavailable and the review is required, you decide: a Claude fallback review, or waiving it. |
+| Human gate | You approved the plan, in the conversation or with `--resume <id> --approve`. |
+| Implementation | `tree-check` passes: nobody moved HEAD, and the plan doesn't touch files you were already editing. |
 
-Todos los gates están en [docs/workflows.md](docs/workflows.md).
+Full details are in [docs/workflows.md](docs/workflows.md).
 </details>
 
-## Uso
+## Usage
 
 ```text
-/agentship:dev <tarea>
-/agentship:dev --risk high cambiar quién puede emitir reembolsos
-/agentship:dev --profile economy agregar un endpoint de salud
+/agentship:dev <task>
+/agentship:dev --risk high change who can issue refunds
+/agentship:dev --profile economy add a health endpoint
 /agentship:dev --resume 2026-11-12T10-00-00-000Z --approve
 ```
 
-| Flag | Efecto |
+| Flag | Effect |
 |---|---|
-| `--route small\|medium\|large` | Sube la ruta. Solo puede bajarla si el riesgo no es HIGH. |
-| `--risk high` | Marca la tarea como HIGH, lo que fuerza LARGE. El riesgo nunca se puede bajar. |
-| `--confirm-downgrade` | Confirma bajar una tarea HIGH. Incluso así, el mínimo es MEDIUM. |
-| `--proposals` / `--no-proposals` | Fuerza o salta la fase de propuestas. |
-| `--profile balanced\|economy\|quality` | Elige el perfil de modelos para esta ejecución. |
-| `--resume <id> [respuestas]` | Retoma una ejecución en su fase pendiente; el texto que sigue son tus respuestas a sus preguntas. |
-| `--resume <id> --proposal <n>` | Elige una propuesta. |
-| `--resume <id> --approve` | Aprueba el gate humano desde otra sesión. |
+| `--route small\|medium\|large` | Raises the route. It can only lower it when the risk is not HIGH. |
+| `--risk high` | Marks the task HIGH, which forces LARGE. Risk can never be lowered. |
+| `--confirm-downgrade` | Confirms lowering a HIGH-risk task. Even then, the minimum is MEDIUM. |
+| `--proposals` / `--no-proposals` | Forces or skips the proposals phase. |
+| `--profile balanced\|economy\|quality` | Picks the model profile for this run. |
+| `--resume <id> [answers]` | Resumes a run at its pending phase. Any text after the id is your answer to its questions. |
+| `--resume <id> --proposal <n>` | Picks a proposal. |
+| `--resume <id> --approve` | Approves the human gate from another session. |
 
-### Así se ve una ejecución
+### What a run looks like
 
 ```text
 Route     SMALL · risk LOW · confidence HIGH · profile balanced
@@ -118,102 +118,101 @@ Changed   src/cart.js, test/cart.test.js
 Evidence  .agentship/runs/2026-11-13T00-22-15-784Z/  → summary.md · report.md
 ```
 
-Cada ejecución guarda su evidencia en `<proyecto>/.agentship/runs/<id>/`. Esa carpeta se ignora a sí misma, así que AgentShip no toca el `.gitignore` del proyecto. Ahí quedan:
+Each run keeps its evidence in `<project>/.agentship/runs/<id>/`. The folder ignores itself, so AgentShip never touches your project's `.gitignore`. It holds:
 
-- la clasificación y las propuestas;
-- el plan;
+- the classification and proposals;
+- the plan;
 - `state.json`;
-- los logs de los checks;
-- las revisiones por ronda;
-- la revisión de Codex y su adjudicación;
-- `summary.md` (listo para el PR) y `report.md` (duraciones, agentes, modelos, tokens reportados, reintentos e intervenciones humanas).
+- the check logs;
+- the reviews, one folder per round;
+- the Codex review and its adjudication;
+- `summary.md` (PR-ready) and `report.md` (durations, agents, models, reported tokens, retries and human interventions).
 
-## Seguridad por diseño
+## Security by design
 
-- **El texto de la tarea nunca pasa por el shell.** Se guarda en archivos que lee el CLI.
-- **Solo se ejecutan los comandos que tú aprobaste**, línea exacta y por proyecto. La aprobación se guarda fuera del repositorio, para que un repo no pueda aprobarse a sí mismo.
-- **Las aprobaciones pasan siempre por un prompt de permisos de Claude Code**: la skill no puede registrarlas por su cuenta.
-- **La configuración del proyecto solo puede endurecer la política**, nunca relajarla.
-- **Codex revisa en un sandbox read-only.** Si se detecta que modificó algún archivo, su revisión se descarta.
+- **Task text never goes through a shell.** It is written to files that the CLI reads.
+- **Only commands you approved are run**, as that exact command line and per project. Approvals are stored outside the repository, so a repo cannot approve itself.
+- **Approvals always go through a Claude Code permission prompt.** The skill cannot record one on its own.
+- **Project configuration can only tighten the policy**, never relax it.
+- **Codex reviews in a read-only sandbox.** If it is found to have modified any file, its review is discarded.
 
-## Requisitos
+## Requirements
 
-| | Versión | |
+| | Version | |
 |---|---|---|
-| Claude Code | ≥ 2.1.292 | probado con 2.1.312 |
-| Node.js | ≥ 22.18 | ejecuta TypeScript sin build |
-| git | reciente | diffs y detección de cambios externos |
-| Codex CLI | opcional | revisión independiente (probado con 0.145.0) |
-| Especialistas | opcionales | p. ej. [VoltAgent](https://github.com/VoltAgent/awesome-claude-code-subagents) o tus propios `.claude/agents/` |
+| Claude Code | ≥ 2.1.292 | tested with 2.1.312 |
+| Node.js | ≥ 22.18 | runs TypeScript without a build step |
+| git | recent | diffs and external-change detection |
+| Codex CLI | optional | independent review (tested with 0.145.0) |
+| Specialists | optional | e.g. [VoltAgent](https://github.com/VoltAgent/awesome-claude-code-subagents) or your own `.claude/agents/` |
 
-Windows, macOS, Linux y WSL2: ver [compatibilidad](docs/compatibility.md).
+Windows, macOS, Linux and WSL2: see [compatibility](docs/compatibility.md).
 
-## Instalación
+## Installation
 
 ```bash
-# Instalar
+# Install
 claude plugin marketplace add dong4to/agentship
 claude plugin install agentship@agentship
 
-# Actualizar
+# Update
 claude plugin marketplace update agentship
 claude plugin update agentship@agentship
 
-# Desinstalar
+# Uninstall
 claude plugin uninstall agentship@agentship
 ```
 
-Para probarlo en una sola sesión, sin instalarlo: `claude --plugin-dir /ruta/a/agentship`.
+To try it in a single session without installing: `claude --plugin-dir /path/to/agentship`.
 
 <details>
-<summary><b>Instalación asistida por un agente</b></summary>
+<summary><b>Agent-assisted installation</b></summary>
 
-Pega este prompt en una sesión de Claude Code abierta en cualquier carpeta que **no** sea la de AgentShip. El agente comprueba los requisitos, instala el plugin y lo verifica, y te pide permiso antes de cualquier cambio global.
+Paste this prompt into a Claude Code session opened in any folder **other than** AgentShip's. The agent checks the requirements, installs the plugin and verifies it, and asks you before any global change.
 
 ```text
-Instala y configura el plugin de Claude Code "AgentShip" (repo: https://github.com/dong4to/agentship).
-Sigue estos pasos en orden y no avances si uno falla:
+Install and set up the Claude Code plugin "AgentShip" (repo: https://github.com/dong4to/agentship).
+Follow these steps in order and stop if one fails:
 
-1. Requisitos. Muéstrame las versiones de `claude --version` (>= 2.1.292), `node --version` (>= 22.18),
-   `git --version` y `gh auth status` (el repo es privado). Si algo falta, detente y dime cómo
-   actualizarlo; no lo instales por tu cuenta.
+1. Requirements. Show me the output of `claude --version` (>= 2.1.292), `node --version` (>= 22.18),
+   `git --version` and `gh auth status` (the repo is private). If anything is missing, stop and tell me
+   how to update it; don't install it yourself.
 
-2. Modo de carga. Pregúntame cuál prefiero:
-   a) Solo por sesión, sin cambios globales: clonar con `gh repo clone dong4to/agentship <ruta>` en una
-      carpeta de herramientas y arrancar Claude Code con `claude --plugin-dir <ruta>`.
-   b) En todas las sesiones: `claude plugin marketplace add dong4to/agentship` y
-      `claude plugin install agentship@agentship`. Esto cambia mi configuración de usuario: confírmalo
-      conmigo antes.
-   No pongas AgentShip dentro de un proyecto donde lo vaya a usar: Claude Code protege contra escritura
-   los archivos que están bajo la raíz de un plugin.
+2. Loading mode. Ask me which I prefer:
+   a) Per session, no global changes: clone with `gh repo clone dong4to/agentship <path>` into a tools
+      folder and start Claude Code with `claude --plugin-dir <path>`.
+   b) In every session: `claude plugin marketplace add dong4to/agentship` and
+      `claude plugin install agentship@agentship`. This changes my user configuration: confirm with me
+      first.
+   Don't put AgentShip inside a project where I'll use it: Claude Code write-protects files under a
+   plugin's root.
 
-3. Verifica que carga (`claude plugin list`, o `claude --plugin-dir <ruta> plugin list`) y ejecuta
-   `node <ruta-del-plugin>/src/cli.ts doctor --project <mi-proyecto>`. Muéstrame el resultado.
+3. Check that it loads (`claude plugin list`, or `claude --plugin-dir <path> plugin list`) and run
+   `node <plugin-path>/src/cli.ts doctor --project <my-project>`. Show me the result.
 
-4. Codex (opcional). Si `doctor` dice que Codex no está disponible, explícame por qué. Si el modelo de mi
-   Codex no está soportado, sugiéreme `codex.model` en `~/.claude/agentship/config.json`, pero no lo
-   escribas sin mi OK.
+4. Codex (optional). If `doctor` says Codex is unavailable, explain why. If my Codex model isn't
+   supported, suggest `codex.model` in `~/.claude/agentship/config.json`, but don't write it without my OK.
 
-5. Especialistas (opcional). Pregúntame si quiero instalar categorías de VoltAgent
-   (https://github.com/VoltAgent/awesome-claude-code-subagents). Recomienda pocas, por ejemplo
-   `voltagent-domains` o `voltagent-qa-sec`. Es un cambio global: hazlo solo con mi confirmación.
+5. Specialists (optional). Ask whether I want to install VoltAgent categories
+   (https://github.com/VoltAgent/awesome-claude-code-subagents). Recommend only a few, e.g.
+   `voltagent-domains` or `voltagent-qa-sec`. This is a global change: only with my confirmation.
 
-6. Reporta qué instalaste y dónde, qué quedó pendiente y cómo empezar (`/agentship:dev <tarea>`;
-   `/reload-plugins` si la sesión ya estaba abierta).
+6. Report what you installed and where, what is still pending, and how to start
+   (`/agentship:dev <task>`; `/reload-plugins` if the session was already open).
 
-Reglas: no modifiques mis CLAUDE.md, `settings.json` ni el `.claude/` de mis proyectos; no hagas push
-ni crees repos; no uses `bypassPermissions`.
+Rules: don't modify my CLAUDE.md, `settings.json` or my projects' `.claude/`; don't push or create
+repos; don't use `bypassPermissions`.
 ```
 </details>
 
-## Configuración
+## Configuration
 
-AgentShip funciona sin configurar nada. Para ajustarlo hay dos archivos:
+AgentShip works with no configuration. To tune it there are two files:
 
-| Archivo | Para qué |
+| File | Purpose |
 |---|---|
-| `~/.claude/agentship/config.json` | Tus preferencias: perfil de modelos, tiers, reintentos, Codex, políticas |
-| `<proyecto>/agentship.config.json` | Lo del proyecto: comandos de test, lint y typecheck, dominios propios y políticas **más estrictas** |
+| `~/.claude/agentship/config.json` | Your preferences: model profile, tiers, retries, Codex, policies |
+| `<project>/agentship.config.json` | Project settings: test, lint and typecheck commands, custom domains, and **stricter** policies |
 
 ```json
 {
@@ -223,36 +222,38 @@ AgentShip funciona sin configurar nada. Para ajustarlo hay dos archivos:
 }
 ```
 
-`node <plugin>/src/cli.ts config --project .` muestra la configuración efectiva y sus errores. La referencia completa está en [docs/configuration.md](docs/configuration.md).
+`node <plugin>/src/cli.ts config --project .` prints the effective configuration and any errors. The full reference is in [docs/configuration.md](docs/configuration.md).
 
-## Desarrollo
+## Development
 
 ```bash
 npm install
-npm run check        # typecheck + 91 tests (sin LLM) + claude plugin validate --strict
+npm run check        # typecheck + 91 tests (no LLM) + claude plugin validate --strict
 ```
 
-| Script | Qué prueba |
+| Script | What it tests |
 |---|---|
-| `tests/e2e/setup-fixture.sh <dir>` | Crea el proyecto de ejemplo en un repo git desechable, **fuera** del repo del plugin. |
-| `tests/e2e/run-e2e.sh <fixture> <out>` | Corre las 4 rutas con Claude real en modo headless. |
-| `tests/e2e/install-test.sh` | Instala, actualiza y desinstala en un `CLAUDE_CONFIG_DIR` temporal. |
-| `tests/e2e/run-eval.sh <fixture> <out> balanced economy` | Compara perfiles de modelos sobre 6 tareas fijas (consume modelos). |
+| `tests/e2e/setup-fixture.sh <dir>` | Builds the sample project as a throwaway git repo, **outside** the plugin repo. |
+| `tests/e2e/run-e2e.sh <fixture> <out>` | Runs all 4 routes headless with real Claude. |
+| `tests/e2e/install-test.sh` | Installs, updates and uninstalls in a temporary `CLAUDE_CONFIG_DIR`. |
+| `tests/e2e/run-eval.sh <fixture> <out> balanced economy` | Compares model profiles on 6 fixed tasks (uses model quota). |
 
-La estructura del código y las decisiones de diseño están en [docs/architecture.md](docs/architecture.md).
+Code layout and design decisions are in [docs/architecture.md](docs/architecture.md).
 
-## Documentación
+## Documentation
+
+The detailed documentation is in Spanish.
 
 | | |
 |---|---|
-| [Arquitectura](docs/architecture.md) | Piezas, flujo y decisiones |
-| [Workflows](docs/workflows.md) | Política de routing, fases, gates, reintentos y recuperación |
-| [Configuración](docs/configuration.md) | Todas las claves, perfiles, comandos y especialistas |
-| [Compatibilidad](docs/compatibility.md) | Plataformas, versiones y diferencias conocidas |
-| [Troubleshooting](docs/troubleshooting.md) | Síntomas, causas y soluciones |
-| [CHANGELOG](CHANGELOG.md) | Historial de versiones |
-| [Plan de implementación](IMPLEMENTATION_PLAN.md) | Especificación original y revisiones |
+| [Architecture](docs/architecture.md) | Components, flow and decisions |
+| [Workflows](docs/workflows.md) | Routing policy, phases, gates, retries and recovery |
+| [Configuration](docs/configuration.md) | Every key, profiles, commands and specialists |
+| [Compatibility](docs/compatibility.md) | Platforms, versions and known differences |
+| [Troubleshooting](docs/troubleshooting.md) | Symptoms, causes and fixes |
+| [CHANGELOG](CHANGELOG.md) | Version history |
+| [Implementation plan](IMPLEMENTATION_PLAN.md) | Original specification and revisions |
 
-## Licencia
+## License
 
-Pendiente de definir por el autor.
+Not yet chosen by the author.
