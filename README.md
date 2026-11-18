@@ -256,4 +256,4 @@ The detailed documentation is in Spanish.
 
 ## License
 
-Not yet chosen by the author.
+AgentShip is distributed under the [MIT License](LICENSE).

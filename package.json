@@ -2,6 +2,7 @@
   "name": "agentship",
   "version": "1.0.0-rc.1",
   "private": true,
+  "license": "MIT",
   "description": "Claude Code plugin that classifies a dev task by complexity, risk and domain, offers approaches, and routes it to the right workflow.",
   "type": "module",
   "engines": {
